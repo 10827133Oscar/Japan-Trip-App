@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { User } from '../types';
 import { signInWithGoogle, signOut, getCurrentUser, onAuthChange } from '../services/auth';
@@ -13,17 +14,57 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Google OAuth請求
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  // 暫時使用Web Client ID for所有平台（Expo Go測試）
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+  // 強制使用代理以生成 HTTPS 網址
+  const redirectUri = AuthSession.makeRedirectUri({
+    useProxy: true,
   });
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
+    {
+      clientId: webClientId,
+      iosClientId: webClientId,
+      androidClientId: webClientId,
+      redirectUri,
+    },
+    // Discovery endpoints
+    {
+      authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenEndpoint: 'https://oauth2.googleapis.com/token',
+      revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+    }
+  );
+
+  useEffect(() => {
+    if (request) {
+      console.log('🔗 Redirect URI (Please add this to Google Console):', request.redirectUri);
+      console.log('🔑 Client ID loaded:', !!webClientId);
+    }
+  }, [request]);
+
+  // 調試輸出
+  useEffect(() => {
+    if (request) {
+      console.log('Redirect URI:', request.redirectUri);
+    }
+  }, [request]);
 
   // 監聽Google OAuth響應
   useEffect(() => {
     if (response?.type === 'success') {
+      console.log('OAuth response:', response);
       const { id_token } = response.params;
-      handleGoogleSignIn(id_token);
+      if (id_token) {
+        handleGoogleSignIn(id_token);
+      } else {
+        console.error('No id_token in response params:', response.params);
+        setError('登入失敗：未收到驗證令牌');
+      }
+    } else if (response?.type === 'error') {
+      console.error('OAuth error:', response.error);
+      setError('登入失敗：' + (response.error?.message || '未知錯誤'));
     }
   }, [response]);
 
@@ -47,11 +88,14 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Starting Firebase sign in...');
       const userData = await signInWithGoogle(idToken);
+      console.log('Sign in successful:', userData);
       setUser(userData);
-    } catch (err) {
-      setError('登入失敗，請重試');
-      console.error(err);
+    } catch (err: any) {
+      const errorMsg = err?.message || '登入失敗，請重試';
+      setError(errorMsg);
+      console.error('Sign in error:', err);
     } finally {
       setLoading(false);
     }

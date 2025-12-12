@@ -32,14 +32,15 @@ export default function TabLayout() {
           headerTitle: '景點列表',
         }}
       />
-      <Tabs.Screen
+      {/* 暫時移除地圖Tab - react-native-maps在Expo Go中有問題 */}
+      {/* <Tabs.Screen
         name="map"
         options={{
           title: '地圖',
           tabBarIcon: ({ color }) => <TabIcon name="🗺️" color={color} />,
           headerTitle: '地圖查看',
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="profile"
         options={{

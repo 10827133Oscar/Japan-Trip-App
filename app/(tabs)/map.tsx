@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useTrip } from '../../hooks/useTrip';
 import { usePlaces } from '../../hooks/usePlaces';
-import { MapViewComponent } from '../../components/MapView';
 import { getDirections, decodePolyline } from '../../services/maps';
 import { Location } from '../../types';
+
+// 動態導入地圖組件，避免在 web 或初始化時崩潰
+let MapViewComponent: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    MapViewComponent = require('../../components/MapView').MapViewComponent;
+  } catch (e) {
+    console.error('Failed to load MapView:', e);
+  }
+}
 
 export default function MapScreen() {
   const { user } = useAuth();
@@ -59,6 +68,20 @@ export default function MapScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>載入中...</Text>
+      </View>
+    );
+  }
+
+  // 如果地圖組件無法載入，顯示錯誤訊息
+  if (!MapViewComponent) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>地圖功能暫時無法使用</Text>
+        <Text style={styles.emptySubtext}>
+          {Platform.OS === 'web'
+            ? '地圖功能僅在移動設備上可用'
+            : '請確保使用 Expo Go 或開發構建'}
+        </Text>
       </View>
     );
   }
