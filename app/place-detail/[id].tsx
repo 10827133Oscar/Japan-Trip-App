@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/useAuth';
+import { useLocalAuth } from '../../hooks/useLocalAuth';
 import { useTrip } from '../../hooks/useTrip';
 import { usePlaces } from '../../hooks/usePlaces';
 import { geocodeAddress } from '../../services/maps';
@@ -18,8 +18,8 @@ import { geocodeAddress } from '../../services/maps';
 export default function PlaceDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
-  const { currentTrip } = useTrip(user?.id || null);
+  const { user } = useLocalAuth();
+  const { currentTrip } = useTrip();
   const { places, createPlace, updatePlace } = usePlaces(currentTrip?.id || null);
 
   const [name, setName] = useState('');
@@ -78,8 +78,7 @@ export default function PlaceDetailScreen() {
         location,
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
-        dayNumber: dayNumber ? parseInt(dayNumber) : undefined,
-        addedBy: user.id,
+        addedBy: user.deviceId,
       };
 
       if (id === 'new') {

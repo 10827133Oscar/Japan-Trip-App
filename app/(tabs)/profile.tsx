@@ -1,25 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Alert,
   ScrollView,
+  TextInput,
+  Modal,
 } from 'react-native';
-import { useAuth } from '../../hooks/useAuth';
 import { useRouter } from 'expo-router';
+import { useLocalAuth } from '../../hooks/useLocalAuth';
+import { AVAILABLE_COLORS } from '../../services/localUser';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, updateUser, logout } = useLocalAuth();
   const router = useRouter();
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editNickname, setEditNickname] = useState('');
+  const [editColor, setEditColor] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setEditNickname(user.nickname);
+      setEditColor(user.color);
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!editNickname.trim()) {
+      Alert.alert('提示', '請輸入暱稱');
+      return;
+    }
+
+    try {
+      await updateUser(editNickname, editColor);
+      setIsEditing(false);
+      Alert.alert('成功', '資料已更新');
+    } catch (error) {
+      Alert.alert('錯誤', '更新失敗');
+    }
+  };
+
   const handleLogout = () => {
-    Alert.alert('登出', '確定要登出嗎？', [
+    Alert.alert('清除資料', '確定要清除本地資料嗎？', [
       { text: '取消', style: 'cancel' },
       {
-        text: '登出',
+        text: '清除',
         style: 'destructive',
         onPress: async () => {
           await logout();
@@ -33,11 +61,27 @@ export default function ProfileScreen() {
     <ScrollView style={styles.container}>
       {/* 用戶資訊卡片 */}
       <View style={styles.profileCard}>
-        {user?.photoURL && (
-          <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+        {user && (
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: user.color }
+            ]}
+          >
+            <Text style={styles.avatarText}>
+              {user.nickname.charAt(0)}
+            </Text>
+          </View>
         )}
-        <Text style={styles.name}>{user?.displayName || '用戶'}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={styles.name}>{user?.nickname || '用戶'}</Text>
+        <Text style={styles.email}>裝置 ID: {user?.deviceId.slice(0, 12)}...</Text>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => setIsEditing(true)}
+        >
+          <Text style={styles.editButtonText}>編輯個人資料</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 設定選項 */}
@@ -48,7 +92,7 @@ export default function ProfileScreen() {
           icon="ℹ️"
           title="版本資訊"
           subtitle="1.0.0"
-          onPress={() => {}}
+          onPress={() => { }}
         />
 
         <MenuItem
@@ -70,7 +114,7 @@ export default function ProfileScreen() {
           onPress={() => {
             Alert.alert(
               '功能特色',
-              '✓ 多人即時協作\n✓ 地圖標記景點\n✓ 智能路線規劃\n✓ 行程分天管理\n✓ Google登入安全快速'
+              '✓ 多人即時協作\n✓ 地圖標記景點\n✓ 智能路線規劃\n✓ 行程分天管理'
             );
           }}
         />
@@ -84,7 +128,7 @@ export default function ProfileScreen() {
           title="資料同步"
           subtitle="自動雲端同步"
           badge="已啟用"
-          onPress={() => {}}
+          onPress={() => { }}
         />
 
         <MenuItem
@@ -105,6 +149,54 @@ export default function ProfileScreen() {
       <Text style={styles.footer}>
         Made with ❤️ for family trips
       </Text>
+
+      {/* 編輯資料 Modal */}
+      <Modal visible={isEditing} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>編輯個人資料</Text>
+
+            <Text style={styles.label}>暱稱</Text>
+            <TextInput
+              style={styles.input}
+              value={editNickname}
+              onChangeText={setEditNickname}
+              maxLength={10}
+            />
+
+            <Text style={styles.label}>代表色</Text>
+            <View style={styles.colorsGrid}>
+              {AVAILABLE_COLORS.map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: c.value },
+                    editColor === c.value && styles.colorSelected
+                  ]}
+                  onPress={() => setEditColor(c.value)}
+                />
+              ))}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsEditing(false)}
+              >
+                <Text style={styles.cancelButtonText}>取消</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleSaveProfile}
+              >
+                <Text style={styles.confirmButtonText}>儲存</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -157,6 +249,13 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   name: {
     fontSize: 22,
@@ -241,5 +340,99 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 12,
     padding: 24,
+  },
+  editButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 20,
+  },
+  editButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 4,
+    color: '#333',
+  },
+  colorsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  colorOption: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    margin: 6,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorSelected: {
+    borderColor: '#333',
+    transform: [{ scale: 1.1 }],
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    marginRight: 8,
+  },
+  confirmButton: {
+    backgroundColor: '#007AFF',
+    marginLeft: 8,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

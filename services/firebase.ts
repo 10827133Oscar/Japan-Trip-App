@@ -1,8 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase配置
 const firebaseConfig = {
@@ -16,7 +14,6 @@ const firebaseConfig = {
 
 console.log('🔧 Firebase Config Loading...');
 console.log('Project ID:', firebaseConfig.projectId);
-console.log('Auth Domain:', firebaseConfig.authDomain);
 console.log('API Key present:', !!firebaseConfig.apiKey);
 
 // 檢查配置是否完整
@@ -37,15 +34,10 @@ if (!checkConfig()) {
   console.warn('⚠️ App running with invalid Firebase config. Some features may crash.');
 }
 
-
 // 初始化Firebase
 const app = initializeApp(firebaseConfig);
 
-// 初始化Auth with AsyncStorage persistence
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
-
+// 只初始化 Firestore 和 Storage（不再使用 Firebase Auth）
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 

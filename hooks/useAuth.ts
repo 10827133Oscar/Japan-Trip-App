@@ -14,10 +14,11 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Google OAuth請求
-  // 暫時使用Web Client ID for所有平台（Expo Go測試）
+  // 使用Web Client ID for所有平台（Expo Go測試）
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-  // 強制使用代理以生成 HTTPS 網址
+  // 使用 Expo Auth Proxy（因為已經有 EAS Project ID）
+  // 這會生成 https://auth.expo.io/@oscar-teng/japan-trip-app
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
   });
