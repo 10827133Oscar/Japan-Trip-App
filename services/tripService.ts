@@ -4,8 +4,10 @@ import {
   setDoc,
   getDoc,
   getDocs,
+  deleteDoc,
   query,
   where,
+  onSnapshot,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -17,14 +19,20 @@ import { hashPassword, verifyPassword, generateTripId } from './password';
 export const createTripWithPassword = async (
   name: string,
   destination: string,
-  password: string
+  password: string,
+  tripId: string // 新增：傳入自定義 ID
 ): Promise<Trip> => {
   const localUser = await getLocalUser();
   if (!localUser) {
     throw new Error('請先設定暱稱');
   }
 
-  const tripId = generateTripId();
+  // 檢查 ID 是否已存在
+  const tripDoc = await getDoc(doc(db, 'trips', tripId));
+  if (tripDoc.exists()) {
+    throw new Error('此計畫 ID 已被使用，請換一個（例如：japan2024）');
+  }
+
   const hashedPassword = hashPassword(password);
 
   const participant: Participant = {
@@ -147,49 +155,57 @@ export const joinTripWithPassword = async (
   };
 };
 
-// 獲取用戶參與的所有計畫
-export const getUserTripsNew = async (): Promise<Trip[]> => {
-  const localUser = await getLocalUser();
-  if (!localUser) {
-    return [];
-  }
+// 即時監聽用戶的所有計畫
+export const subscribeToUserTrips = (
+  callback: (trips: Trip[]) => void
+): (() => void) => {
+  let unsubscribe: (() => void) | null = null;
 
-  try {
-    // 獲取用戶參與的計畫
+  // 需要非同步獲取用戶 ID
+  const setup = async () => {
+    const localUser = await getLocalUser();
+    if (!localUser) {
+      callback([]);
+      return;
+    }
+
     const tripsRef = collection(db, 'trips');
     const q = query(
       tripsRef,
       where('participantDeviceIds', 'array-contains', localUser.deviceId)
     );
 
-    const snapshot = await getDocs(q);
+    unsubscribe = onSnapshot(q, (snapshot) => {
+      const userTrips: Trip[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const participants = data.participants || [];
 
-    const userTrips: Trip[] = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const participants = data.participants || [];
+        return {
+          id: doc.id,
+          ...data,
+          startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(),
+          endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(),
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+          participants: participants.map((p: any) => ({
+            ...p,
+            joinedAt: p.joinedAt?.toDate ? p.joinedAt.toDate() : new Date(),
+          })),
+          participantDeviceIds: data.participantDeviceIds || [],
+        } as Trip;
+      });
 
-      return {
-        id: doc.id,
-        ...data,
-        startDate: data.startDate.toDate(),
-        endDate: data.endDate.toDate(),
-        createdAt: data.createdAt.toDate(),
-        participants: participants.map((p: any) => ({
-          ...p,
-          joinedAt: p.joinedAt.toDate(),
-        })),
-        participantDeviceIds: data.participantDeviceIds || [],
-      } as Trip;
+      // 按創建時間排序
+      callback(userTrips.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    }, (error) => {
+      console.error('監聽計畫列表失敗:', error);
     });
+  };
 
-    // 按創建時間排序
-    return userTrips.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
-  } catch (error) {
-    console.error('獲取計畫列表錯誤:', error);
-    throw error;
-  }
+  setup();
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
 };
 
 // 獲取單個計畫
@@ -215,5 +231,46 @@ export const getTripById = async (tripId: string): Promise<Trip | null> => {
   } catch (error) {
     console.error('獲取計畫錯誤:', error);
     throw error;
+  }
+};
+
+// 退出計畫
+export const leaveTrip = async (tripId: string): Promise<void> => {
+  const localUser = await getLocalUser();
+  if (!localUser) {
+    throw new Error('用戶未登錄');
+  }
+
+  const tripDocRef = doc(db, 'trips', tripId);
+  const tripDoc = await getDoc(tripDocRef);
+
+  if (!tripDoc.exists()) {
+    throw new Error('計畫不存在');
+  }
+
+  const tripData = tripDoc.data();
+  const participants = tripData.participants || [];
+  const participantDeviceIds = tripData.participantDeviceIds || [];
+
+  // 過濾掉當前用戶
+  const updatedParticipants = participants.filter(
+    (p: any) => p.deviceId !== localUser.deviceId
+  );
+  const updatedDeviceIds = participantDeviceIds.filter(
+    (id: string) => id !== localUser.deviceId
+  );
+
+  // 如果沒有參與者了，刪除計畫
+  if (updatedParticipants.length === 0) {
+    await deleteDoc(tripDocRef);
+  } else {
+    await setDoc(
+      tripDocRef,
+      {
+        participants: updatedParticipants,
+        participantDeviceIds: updatedDeviceIds,
+      },
+      { merge: true }
+    );
   }
 };

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
@@ -21,7 +21,9 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '行程',
-          tabBarIcon: ({ color }) => <TabIcon name="🗓️" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
           headerTitle: '我的行程',
         }}
       />
@@ -29,31 +31,32 @@ export default function TabLayout() {
         name="places"
         options={{
           title: '景點',
-          tabBarIcon: ({ color }) => <TabIcon name="📍" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="location" size={size} color={color} />
+          ),
           headerTitle: '景點列表',
         }}
       />
-      {/* 暫時移除地圖Tab - react-native-maps在Expo Go中有問題 */}
-      {/* <Tabs.Screen
+      <Tabs.Screen
         name="map"
         options={{
           title: '地圖',
-          tabBarIcon: ({ color }) => <TabIcon name="🗺️" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" size={size} color={color} />
+          ),
           headerTitle: '地圖查看',
         }}
-      /> */}
+      />
       <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
-          tabBarIcon: ({ color }) => <TabIcon name="👤" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
           headerTitle: '個人設定',
         }}
       />
     </Tabs>
   );
 }
-
-const TabIcon = ({ name, color }: { name: string; color: string }) => (
-  <Text style={{ fontSize: 24, color }}>{name}</Text>
-);

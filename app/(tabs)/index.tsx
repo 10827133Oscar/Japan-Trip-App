@@ -23,6 +23,7 @@ export default function HomeScreen() {
   const [showJoinModal, setShowJoinModal] = useState(false);
 
   // 創建計畫表單
+  const [newTripId, setNewTripId] = useState(''); // 新增：自定義 ID
   const [newTripName, setNewTripName] = useState('');
   const [newTripDestination, setNewTripDestination] = useState('東京');
   const [newTripPassword, setNewTripPassword] = useState('');
@@ -32,6 +33,12 @@ export default function HomeScreen() {
   const [joinTripId, setJoinTripId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [joining, setJoining] = useState(false);
+
+  // 計畫管理狀態
+  const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedDetailsTrip, setSelectedDetailsTrip] = useState<any>(null);
+  const { leaveTrip } = useTrip();
 
   useEffect(() => {
     loadUser();
@@ -44,6 +51,23 @@ export default function HomeScreen() {
 
   // 處理創建計畫
   const handleCreateTrip = async () => {
+    if (!newTripId.trim()) {
+      Alert.alert('提示', '請設定計畫 ID');
+      return;
+    }
+
+    if (newTripId.trim().length < 4) {
+      Alert.alert('提示', '計畫 ID 長度至少需要 4 個字元');
+      return;
+    }
+
+    // 檢查非法字元（只允許字母、數字、底線）
+    const idRegex = /^[a-zA-Z0-9_]+$/;
+    if (!idRegex.test(newTripId.trim())) {
+      Alert.alert('提示', '計畫 ID 只能包含字母、數字或底線');
+      return;
+    }
+
     if (!newTripName.trim()) {
       Alert.alert('提示', '請輸入計畫名稱');
       return;
@@ -59,9 +83,11 @@ export default function HomeScreen() {
       const trip = await createTrip(
         newTripName.trim(),
         newTripDestination.trim(),
-        newTripPassword.trim()
+        newTripPassword.trim(),
+        newTripId.trim().toLowerCase() // 通一轉換為小寫
       );
 
+      setNewTripId('');
       setNewTripName('');
       setNewTripDestination('東京');
       setNewTripPassword('');
@@ -115,6 +141,35 @@ export default function HomeScreen() {
     } finally {
       setJoining(false);
     }
+  };
+
+  // 處理退出計畫
+  const handleLeaveTrip = (trip: any) => {
+    Alert.alert(
+      '退出計畫',
+      `確定要退出「${trip.name}」嗎？退出後您將無法查看此計畫的景點。`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '確定退出',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await leaveTrip(trip.id);
+              Alert.alert('已退出', '您已成功退出該計畫');
+            } catch (error: any) {
+              Alert.alert('錯誤', error.message || '退出計畫失敗');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  // 查看詳情
+  const handleViewDetails = (trip: any) => {
+    setSelectedDetailsTrip(trip);
+    setShowDetailsModal(true);
   };
 
   // 複製計畫 ID
@@ -172,10 +227,17 @@ export default function HomeScreen() {
                   styles.tripCard,
                   currentTrip?.id === trip.id && styles.tripCardActive,
                 ]}
-                onPress={() => selectTrip(trip)}
+                onPress={() => setExpandedTripId(expandedTripId === trip.id ? null : trip.id)}
               >
                 <View style={styles.tripHeader}>
-                  <Text style={styles.tripName}>{trip.name}</Text>
+                  <View style={styles.tripTitleWrapper}>
+                    <Text style={styles.tripName}>{trip.name}</Text>
+                    {currentTrip?.id === trip.id && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>使用中</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.tripDestination}>📍 {trip.destination}</Text>
                 </View>
 
@@ -183,10 +245,37 @@ export default function HomeScreen() {
                   <Text style={styles.tripInfoText}>
                     👥 {trip.participants.length} 人參與
                   </Text>
-                  <TouchableOpacity onPress={() => copyTripId(trip.id)}>
-                    <Text style={styles.tripId}>ID: {trip.id.slice(0, 12)}...</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.tripIdText}>ID: {trip.id}</Text>
                 </View>
+
+                {/* 展開後的按鈕 */}
+                {expandedTripId === trip.id && (
+                  <View style={styles.tripCardActions}>
+                    <TouchableOpacity
+                      style={[styles.tripActionBtn, styles.switchBtn]}
+                      onPress={() => {
+                        selectTrip(trip);
+                        Alert.alert('已切換', `現在切換至：${trip.name}`);
+                      }}
+                    >
+                      <Text style={styles.tripActionText}>切換計畫</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.tripActionBtn, styles.detailsBtn]}
+                      onPress={() => handleViewDetails(trip)}
+                    >
+                      <Text style={styles.tripActionText}>查看詳情</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.tripActionBtn, styles.leaveBtn]}
+                      onPress={() => handleLeaveTrip(trip)}
+                    >
+                      <Text style={styles.tripActionText}>退出計畫</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
                 {/* 參與者顏色指示 */}
                 <View style={styles.participantsColors}>
@@ -223,9 +312,22 @@ export default function HomeScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>創建新計畫</Text>
 
+            <Text style={styles.inputLabel}>計畫 ID (其他人加入用)</Text>
             <TextInput
               style={styles.input}
-              placeholder="計畫名稱（例如：東京家庭旅遊）"
+              placeholder="例如: tokyo2024 (至少4位)"
+              placeholderTextColor="#999"
+              value={newTripId}
+              onChangeText={setNewTripId}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+            />
+
+            <Text style={styles.inputLabel}>計畫名稱</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="例如: 東京跨年之旅"
               placeholderTextColor="#999"
               value={newTripName}
               onChangeText={setNewTripName}
@@ -337,6 +439,56 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 計畫詳情 Modal */}
+      <Modal visible={showDetailsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailsModalContent}>
+            <Text style={styles.modalTitle}>計畫詳情</Text>
+
+            {selectedDetailsTrip && (
+              <ScrollView style={styles.detailsScroll}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>計畫 ID</Text>
+                  <View style={styles.idCopyWrapper}>
+                    <Text style={styles.detailValue}>{selectedDetailsTrip.id}</Text>
+                    <TouchableOpacity onPress={() => copyTripId(selectedDetailsTrip.id)}>
+                      <Text style={styles.copyText}>複製</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>計畫名稱</Text>
+                  <Text style={styles.detailValue}>{selectedDetailsTrip.name}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>目的地</Text>
+                  <Text style={styles.detailValue}>{selectedDetailsTrip.destination}</Text>
+                </View>
+
+                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.detailLabel}>參與成員 ({selectedDetailsTrip.participants.length})</Text>
+                  {selectedDetailsTrip.participants.map((p: any, idx: number) => (
+                    <View key={idx} style={styles.memberItem}>
+                      <View style={[styles.memberColor, { backgroundColor: p.color }]} />
+                      <Text style={styles.memberName}>{p.nickname} {p.deviceId === user?.deviceId ? '(您)' : ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={styles.detailsCloseBtn}
+              onPress={() => setShowDetailsModal(false)}
+            >
+              <Text style={styles.confirmButtonText}>確認</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -436,6 +588,7 @@ const styles = StyleSheet.create({
   tripCardActive: {
     borderColor: '#007AFF',
     backgroundColor: '#F0F8FF',
+    borderWidth: 2,
   },
   tripHeader: {
     marginBottom: 8,
@@ -521,6 +674,13 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    marginTop: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -560,8 +720,118 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confirmButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  tripTitleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activeBadge: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  activeBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  tripIdText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  tripCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginTop: 12,
+  },
+  tripActionBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  switchBtn: {
+    backgroundColor: '#E3F2FD',
+  },
+  detailsBtn: {
+    backgroundColor: '#F5F5F5',
+  },
+  leaveBtn: {
+    backgroundColor: '#FFEBEE',
+  },
+  tripActionText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#333',
+  },
+  // 詳情 Modal 樣式
+  detailsModalContent: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  detailsScroll: {
+    marginTop: 10,
+  },
+  detailRow: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  idCopyWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  copyText: {
+    color: '#007AFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  memberItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  memberColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  memberName: {
+    fontSize: 14,
+    color: '#555',
+  },
+  detailsCloseBtn: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    width: '100%',
   },
 });
