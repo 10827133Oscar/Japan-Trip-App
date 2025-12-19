@@ -15,6 +15,24 @@ import { Trip, Participant } from '../types';
 import { getLocalUser } from './localUser';
 import { hashPassword, verifyPassword, generateTripId } from './password';
 
+// 工具函式：將 Firestore 文件轉換為 Trip 物件
+const convertFirestoreDocToTrip = (docId: string, data: any): Trip => {
+  const participants = data.participants || [];
+
+  return {
+    id: docId,
+    ...data,
+    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(),
+    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(),
+    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+    participants: participants.map((p: any) => ({
+      ...p,
+      joinedAt: p.joinedAt?.toDate ? p.joinedAt.toDate() : new Date(),
+    })),
+    participantDeviceIds: data.participantDeviceIds || [],
+  } as Trip;
+};
+
 // 創建計畫（帶密碼）
 export const createTripWithPassword = async (
   name: string,
@@ -91,18 +109,8 @@ export const joinTripWithPassword = async (
 
   const tripData = tripDoc.data();
 
-  // 轉換日期
-  const trip: Trip = {
-    id: tripDoc.id,
-    ...tripData,
-    startDate: tripData.startDate.toDate(),
-    endDate: tripData.endDate.toDate(),
-    createdAt: tripData.createdAt.toDate(),
-    participants: tripData.participants.map((p: any) => ({
-      ...p,
-      joinedAt: p.joinedAt.toDate(),
-    })),
-  } as Trip;
+  // 使用工具函式轉換資料
+  const trip = convertFirestoreDocToTrip(tripDoc.id, tripData);
 
   // 驗證密碼（改為直接比對，配合明文存儲）
   if (password !== trip.password) {
@@ -177,23 +185,9 @@ export const subscribeToUserTrips = (
     );
 
     unsubscribe = onSnapshot(q, (snapshot) => {
-      const userTrips: Trip[] = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const participants = data.participants || [];
-
-        return {
-          id: doc.id,
-          ...data,
-          startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(),
-          endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(),
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-          participants: participants.map((p: any) => ({
-            ...p,
-            joinedAt: p.joinedAt?.toDate ? p.joinedAt.toDate() : new Date(),
-          })),
-          participantDeviceIds: data.participantDeviceIds || [],
-        } as Trip;
-      });
+      const userTrips: Trip[] = snapshot.docs.map(doc =>
+        convertFirestoreDocToTrip(doc.id, doc.data())
+      );
 
       // 按創建時間排序
       callback(userTrips.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
@@ -217,18 +211,7 @@ export const getTripById = async (tripId: string): Promise<Trip | null> => {
       return null;
     }
 
-    const data = tripDoc.data();
-    return {
-      id: tripDoc.id,
-      ...data,
-      startDate: data.startDate.toDate(),
-      endDate: data.endDate.toDate(),
-      createdAt: data.createdAt.toDate(),
-      participants: data.participants.map((p: any) => ({
-        ...p,
-        joinedAt: p.joinedAt.toDate(),
-      })),
-    } as Trip;
+    return convertFirestoreDocToTrip(tripDoc.id, tripDoc.data());
   } catch (error) {
     console.error('獲取計畫錯誤:', error);
     throw error;

@@ -16,12 +16,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.japantripapp",
+      "bundleIdentifier": "com.oscar.japantrip",
       "config": {
         "googleMapsApiKey": "AIzaSyDHkb76jce-ulZ1zWruhppb68vJzKm8UG8"
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "此App需要位置權限來顯示您的當前位置並規劃路線"
+        "NSLocationWhenInUseUsageDescription": "此App need 位置權限來顯示您的當前位置並規劃路線"
       }
     },
     "android": {
@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourname.japantripapp",
+      "package": "com.oscar.japantrip",
       "edgeToEdgeEnabled": true,
       "config": {
         "googleMaps": {

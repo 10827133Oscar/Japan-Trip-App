@@ -1,145 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
-  Modal,
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { getLocalUser, LocalUser } from '../../services/localUser';
+import { Trip } from '../../types';
 import { useTrip } from '../../hooks/useTrip';
 import { useUser } from '../../context/UserContext';
 import { WeatherWidget } from '../../components/WeatherWidget';
+import { CreateTripModal } from '../../components/modals/CreateTripModal';
+import { JoinTripModal } from '../../components/modals/JoinTripModal';
+import { TripDetailsModal } from '../../components/modals/TripDetailsModal';
 
 export default function HomeScreen() {
   const { user, themeColor } = useUser();
-  const { trips, currentTrip, loading, createTrip, joinTrip, selectTrip } = useTrip();
+  const { trips, currentTrip, loading, createTrip, joinTrip, selectTrip, leaveTrip } = useTrip();
 
   // Modal 狀態
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
-  // 創建計畫表單
-  const [newTripId, setNewTripId] = useState(''); // 新增：自定義 ID
-  const [newTripName, setNewTripName] = useState('');
-  const [newTripDestination, setNewTripDestination] = useState('東京');
-  const [newTripPassword, setNewTripPassword] = useState('');
-  const [creating, setCreating] = useState(false);
-
-  // 加入計畫表單
-  const [joinTripId, setJoinTripId] = useState('');
-  const [joinPassword, setJoinPassword] = useState('');
-  const [joining, setJoining] = useState(false);
-
   // 計畫管理狀態
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedDetailsTrip, setSelectedDetailsTrip] = useState<any>(null);
-  const { leaveTrip } = useTrip();
-
-  // 移除本地 loadUser，改用 context
-
-  // 處理創建計畫
-  const handleCreateTrip = async () => {
-    if (!newTripId.trim()) {
-      Alert.alert('提示', '請設定計畫 ID');
-      return;
-    }
-
-    if (newTripId.trim().length < 4) {
-      Alert.alert('提示', '計畫 ID 長度至少需要 4 個字元');
-      return;
-    }
-
-    // 檢查非法字元（只允許字母、數字、底線）
-    const idRegex = /^[a-zA-Z0-9_]+$/;
-    if (!idRegex.test(newTripId.trim())) {
-      Alert.alert('提示', '計畫 ID 只能包含字母、數字或底線');
-      return;
-    }
-
-    if (!newTripName.trim()) {
-      Alert.alert('提示', '請輸入計畫名稱');
-      return;
-    }
-
-    if (!newTripPassword.trim()) {
-      Alert.alert('提示', '請設定計畫密碼');
-      return;
-    }
-
-    try {
-      setCreating(true);
-      const trip = await createTrip(
-        newTripName.trim(),
-        newTripDestination.trim(),
-        newTripPassword.trim(),
-        newTripId.trim().toLowerCase() // 通一轉換為小寫
-      );
-
-      setNewTripId('');
-      setNewTripName('');
-      setNewTripDestination('東京');
-      setNewTripPassword('');
-      setShowCreateModal(false);
-
-      // 顯示計畫 ID
-      Alert.alert(
-        '計畫已創建！',
-        `計畫 ID: ${trip.id}\n\n請將此 ID 和密碼分享給家人朋友，他們就能加入計畫。`,
-        [
-          {
-            text: '複製 ID',
-            onPress: async () => {
-              await Clipboard.setStringAsync(trip.id);
-              Alert.alert('已複製', '計畫 ID 已複製到剪貼簿');
-            },
-          },
-          { text: '確定' },
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert('錯誤', error.message || '創建計畫失敗');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  // 處理加入計畫
-  const handleJoinTrip = async () => {
-    if (!joinTripId.trim()) {
-      Alert.alert('提示', '請輸入計畫 ID');
-      return;
-    }
-
-    if (!joinPassword.trim()) {
-      Alert.alert('提示', '請輸入計畫密碼');
-      return;
-    }
-
-    try {
-      setJoining(true);
-      await joinTrip(joinTripId.trim(), joinPassword.trim());
-
-      setJoinTripId('');
-      setJoinPassword('');
-      setShowJoinModal(false);
-
-      Alert.alert('成功', '已加入計畫！');
-    } catch (error: any) {
-      Alert.alert('錯誤', error.message || '加入計畫失敗');
-    } finally {
-      setJoining(false);
-    }
-  };
+  const [selectedDetailsTrip, setSelectedDetailsTrip] = useState<Trip | null>(null);
 
   // 處理退出計畫
-  const handleLeaveTrip = (trip: any) => {
+  const handleLeaveTrip = (trip: Trip) => {
     Alert.alert(
       '退出計畫',
       `確定要退出「${trip.name}」嗎？退出後您將無法查看此計畫的景點。`,
@@ -162,15 +53,9 @@ export default function HomeScreen() {
   };
 
   // 查看詳情
-  const handleViewDetails = (trip: any) => {
+  const handleViewDetails = (trip: Trip) => {
     setSelectedDetailsTrip(trip);
     setShowDetailsModal(true);
-  };
-
-  // 複製計畫 ID
-  const copyTripId = async (tripId: string) => {
-    await Clipboard.setStringAsync(tripId);
-    Alert.alert('已複製', '計畫 ID 已複製到剪貼簿');
   };
 
   if (loading) {
@@ -306,194 +191,27 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* 創建計畫 Modal */}
-      <Modal visible={showCreateModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>創建新計畫</Text>
+      <CreateTripModal
+        visible={showCreateModal}
+        themeColor={themeColor}
+        onClose={() => setShowCreateModal(false)}
+        onCreateTrip={createTrip}
+      />
 
-            <Text style={styles.inputLabel}>計畫 ID (其他人加入用)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="例如: tokyo2024 (至少4位)"
-              placeholderTextColor="#999"
-              value={newTripId}
-              onChangeText={setNewTripId}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={20}
-            />
+      <JoinTripModal
+        visible={showJoinModal}
+        themeColor={themeColor}
+        onClose={() => setShowJoinModal(false)}
+        onJoinTrip={joinTrip}
+      />
 
-            <Text style={styles.inputLabel}>計畫名稱</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="例如: 東京跨年之旅"
-              placeholderTextColor="#999"
-              value={newTripName}
-              onChangeText={setNewTripName}
-              maxLength={30}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="目的地"
-              placeholderTextColor="#999"
-              value={newTripDestination}
-              onChangeText={setNewTripDestination}
-              maxLength={20}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="設定計畫密碼（分享給家人朋友）"
-              placeholderTextColor="#999"
-              value={newTripPassword}
-              onChangeText={setNewTripPassword}
-              secureTextEntry
-              maxLength={20}
-            />
-
-            <Text style={styles.hint}>
-              💡 密碼建議：簡單好記，例如 japan2024
-            </Text>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowCreateModal(false);
-                  setNewTripName('');
-                  setNewTripPassword('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>取消</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: themeColor }]}
-                onPress={handleCreateTrip}
-                disabled={creating}
-              >
-                {creating ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.confirmButtonText}>創建</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* 加入計畫 Modal */}
-      <Modal visible={showJoinModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>加入計畫</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="輸入計畫 ID"
-              placeholderTextColor="#999"
-              value={joinTripId}
-              onChangeText={setJoinTripId}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="輸入計畫密碼"
-              placeholderTextColor="#999"
-              value={joinPassword}
-              onChangeText={setJoinPassword}
-              secureTextEntry
-            />
-
-            <Text style={styles.hint}>
-              💡 向創建者索取計畫 ID 和密碼
-            </Text>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowJoinModal(false);
-                  setJoinTripId('');
-                  setJoinPassword('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>取消</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: themeColor }]}
-                onPress={handleJoinTrip}
-                disabled={joining}
-              >
-                {joining ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.confirmButtonText}>加入</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* 計畫詳情 Modal */}
-      <Modal visible={showDetailsModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.detailsModalContent}>
-            <Text style={styles.modalTitle}>計畫詳情</Text>
-
-            {selectedDetailsTrip && (
-              <ScrollView style={styles.detailsScroll}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>計畫 ID</Text>
-                  <View style={styles.idCopyWrapper}>
-                    <Text style={styles.detailValue}>{selectedDetailsTrip.id}</Text>
-                    <TouchableOpacity onPress={() => copyTripId(selectedDetailsTrip.id)}>
-                      <Text style={[styles.copyText, { color: themeColor }]}>複製</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>計畫名稱</Text>
-                  <Text style={styles.detailValue}>{selectedDetailsTrip.name}</Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>計畫密碼</Text>
-                  <Text style={styles.detailValue}>{selectedDetailsTrip.password || '無'}</Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>目的地</Text>
-                  <Text style={styles.detailValue}>{selectedDetailsTrip.destination}</Text>
-                </View>
-
-                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.detailLabel}>參與成員 ({selectedDetailsTrip.participants.length})</Text>
-                  {selectedDetailsTrip.participants.map((p: any, idx: number) => (
-                    <View key={idx} style={styles.memberItem}>
-                      <View style={[styles.memberColor, { backgroundColor: p.color }]} />
-                      <Text style={styles.memberName}>{p.nickname} {p.deviceId === user?.deviceId ? '(您)' : ''}</Text>
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-
-            <TouchableOpacity
-              style={[styles.detailsCloseBtn, { backgroundColor: themeColor }]}
-              onPress={() => setShowDetailsModal(false)}
-            >
-              <Text style={styles.confirmButtonText}>確認</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <TripDetailsModal
+        visible={showDetailsModal}
+        trip={selectedDetailsTrip}
+        currentDeviceId={user?.deviceId}
+        themeColor={themeColor}
+        onClose={() => setShowDetailsModal(false)}
+      />
     </View>
   );
 }
