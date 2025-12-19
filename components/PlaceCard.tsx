@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Place } from '../types';
+import { useUser } from '../context/UserContext';
 
 // 為 Android 啟用佈局動畫
 if (Platform.OS === 'android') {
@@ -18,6 +19,7 @@ interface PlaceCardProps {
 }
 
 export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onTakeMeThere, onEdit, onDelete }) => {
+  const { themeColor } = useUser();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -78,7 +80,7 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onTakeMeThere, onEd
               </Text>
             )}
             {place.dayNumber && (
-              <View style={styles.dayBadge}>
+              <View style={[styles.dayBadge, { backgroundColor: themeColor }]}>
                 <Text style={styles.dayText}>第{place.dayNumber}天</Text>
               </View>
             )}

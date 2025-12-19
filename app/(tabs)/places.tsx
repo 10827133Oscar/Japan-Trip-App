@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTrip } from '../../hooks/useTrip';
 import { usePlaces } from '../../hooks/usePlaces';
+import { useUser } from '../../context/UserContext';
 import { PlaceCard } from '../../components/PlaceCard';
 
 type FilterType = 'all' | number;
@@ -18,6 +19,7 @@ type FilterType = 'all' | number;
 export default function PlacesScreen() {
   const router = useRouter();
   const { currentTrip } = useTrip();
+  const { themeColor } = useUser();
   const { places, sortedPlaces, loading, deletePlace } = usePlaces(currentTrip?.id || null);
 
   const [filter, setFilter] = useState<FilterType>('all');
@@ -83,11 +85,11 @@ export default function PlacesScreen() {
   if (loading && places.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>景點</Text>
+        <View style={[styles.header, { backgroundColor: themeColor }]}>
+          <Text style={styles.headerSubtitle}>載入中...</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={themeColor} />
           <Text style={styles.loadingText}>載入中...</Text>
         </View>
       </View>
@@ -98,8 +100,8 @@ export default function PlacesScreen() {
   if (!currentTrip) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>景點</Text>
+        <View style={[styles.header, { backgroundColor: themeColor }]}>
+          <Text style={styles.headerSubtitle}>還沒有計畫</Text>
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🗺️</Text>
@@ -115,8 +117,7 @@ export default function PlacesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>景點</Text>
+      <View style={[styles.header, { backgroundColor: themeColor }]}>
         <Text style={styles.headerSubtitle}>{currentTrip.name}</Text>
       </View>
 
@@ -130,7 +131,7 @@ export default function PlacesScreen() {
             contentContainerStyle={styles.filterContent}
           >
             <TouchableOpacity
-              style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
+              style={[styles.filterChip, filter === 'all' && { backgroundColor: themeColor, borderColor: themeColor }]}
               onPress={() => setFilter('all')}
             >
               <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
@@ -141,7 +142,7 @@ export default function PlacesScreen() {
             {days.map(day => (
               <TouchableOpacity
                 key={day}
-                style={[styles.filterChip, filter === day && styles.filterChipActive]}
+                style={[styles.filterChip, filter === day && { backgroundColor: themeColor, borderColor: themeColor }]}
                 onPress={() => setFilter(day)}
               >
                 <Text style={[styles.filterText, filter === day && styles.filterTextActive]}>
@@ -185,7 +186,7 @@ export default function PlacesScreen() {
       </ScrollView>
 
       {/* 新增景點按鈕 */}
-      <TouchableOpacity style={styles.fab} onPress={handleAddPlace}>
+      <TouchableOpacity style={[styles.fab, { backgroundColor: themeColor }]} onPress={handleAddPlace}>
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
     </View>
@@ -199,19 +200,14 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#007AFF',
-    padding: 24,
-    paddingTop: 60,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#fff',
-    opacity: 0.9,
   },
   loadingContainer: {
     flex: 1,

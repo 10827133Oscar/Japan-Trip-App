@@ -4,6 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTrip } from '../../hooks/useTrip';
 import { usePlaces } from '../../hooks/usePlaces';
+import { useUser } from '../../context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
@@ -21,6 +22,7 @@ export default function MapScreen() {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const { currentTrip } = useTrip();
+  const { themeColor } = useUser();
   const { places, loading } = usePlaces(currentTrip?.id || null);
   const mapRef = useRef<MapView>(null);
 
@@ -173,8 +175,8 @@ export default function MapScreen() {
   if (!currentTrip) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>地圖</Text>
+        <View style={[styles.header, { backgroundColor: themeColor }]}>
+          <Text style={styles.headerSubtitle}>地圖</Text>
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🗺️</Text>
@@ -191,12 +193,12 @@ export default function MapScreen() {
   if (loading && places.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>地圖</Text>
-          <Text style={styles.headerSubtitle}>{currentTrip.name}</Text>
+        <View style={[styles.header, { backgroundColor: themeColor }]}>
+          <Text style={styles.headerSubtitle}>地圖</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: 14, opacity: 0.8 }]}>{currentTrip.name}</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={themeColor} />
           <Text style={styles.loadingText}>載入地圖中...</Text>
         </View>
       </View>
@@ -206,9 +208,8 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>地圖查看</Text>
-        <Text style={styles.headerSubtitle}>{currentTrip.name}</Text>
+      <View style={[styles.header, { backgroundColor: themeColor }]}>
+        <Text style={[styles.headerSubtitle, { fontWeight: 'bold' }]}>{currentTrip.name}</Text>
       </View>
 
       {/* 篩選標籤 - 與景點頁面一致 */}
@@ -221,7 +222,7 @@ export default function MapScreen() {
             contentContainerStyle={styles.filterContent}
           >
             <TouchableOpacity
-              style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
+              style={[styles.filterChip, filter === 'all' && { backgroundColor: themeColor, borderColor: themeColor }]}
               onPress={() => setFilter('all')}
             >
               <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
@@ -232,7 +233,7 @@ export default function MapScreen() {
             {days.map(day => (
               <TouchableOpacity
                 key={day}
-                style={[styles.filterChip, filter === day && styles.filterChipActive]}
+                style={[styles.filterChip, filter === day && { backgroundColor: themeColor, borderColor: themeColor }]}
                 onPress={() => setFilter(day)}
               >
                 <Text style={[styles.filterText, filter === day && styles.filterTextActive]}>
@@ -273,15 +274,10 @@ export default function MapScreen() {
         </MapView>
 
         {/* 新增模式提示 */}
+        {/* 新增模式提示 - 移到左下角並簡化 */}
         {isAddingFromMap && (
-          <View style={styles.instructionOverlay}>
-            <Text style={styles.instructionText}>請點選地圖上的位置來新增景點</Text>
-            <TouchableOpacity
-              style={styles.cancelAddButton}
-              onPress={() => setIsAddingFromMap(false)}
-            >
-              <Text style={styles.cancelAddText}>取消</Text>
-            </TouchableOpacity>
+          <View style={styles.addingHint}>
+            <Text style={styles.addingHintText}>📍 請點擊地圖選擇位置</Text>
           </View>
         )}
 
@@ -306,7 +302,7 @@ export default function MapScreen() {
 
         {/* 右下角新增按鈕 */}
         <TouchableOpacity
-          style={[styles.mainFab, isAddingFromMap && styles.mainFabActive]}
+          style={[styles.mainFab, { backgroundColor: isAddingFromMap ? '#FF3B30' : themeColor }]}
           onPress={() => setIsAddingFromMap(!isAddingFromMap)}
         >
           <Ionicons name={isAddingFromMap ? "close" : "add"} size={32} color="#fff" />
@@ -336,14 +332,14 @@ export default function MapScreen() {
                       style={styles.copyButton}
                       onPress={() => handleCopyAddress(place.address)}
                     >
-                      <Ionicons name="copy-outline" size={20} color="#007AFF" />
+                      <Ionicons name="copy-outline" size={20} color={themeColor} />
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity
-                    style={styles.detailButton}
+                    style={[styles.detailButton, { backgroundColor: themeColor }]}
                     onPress={() => router.push(`/place-detail/${place.id}`)}
                   >
-                    <Text style={styles.detailButtonText}>查看詳情 →</Text>
+                    <Text style={[styles.detailButtonText, { color: '#fff' }]}>查看詳情 →</Text>
                   </TouchableOpacity>
                 </>
               );
@@ -380,20 +376,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#007AFF',
-    padding: 24,
-    paddingTop: 60,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    backgroundColor: '#007AFF', // Will be overridden
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#fff',
-    opacity: 0.9,
   },
   filterWrapper: {
     height: 52,
@@ -527,7 +518,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
     zIndex: 20,
   },
   placeCardHeader: {
@@ -624,16 +614,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  addPlaceButton: {
-    backgroundColor: '#34C759',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
+  addingHint: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    zIndex: 1000,
   },
-  addPlaceButtonText: {
+  addingHintText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pinContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mainFab: {
     position: 'absolute',
@@ -642,7 +640,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#34C759',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -652,38 +649,16 @@ const styles = StyleSheet.create({
     elevation: 6,
     zIndex: 100,
   },
-  mainFabActive: {
-    backgroundColor: '#FF3B30',
+  addPlaceButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 10,
   },
-  instructionOverlay: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 15,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 1000,
-  },
-  instructionText: {
+  addPlaceButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  cancelAddButton: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginLeft: 10,
-  },
-  cancelAddText: {
-    color: '#fff',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

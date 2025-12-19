@@ -13,9 +13,11 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { getLocalUser, LocalUser } from '../../services/localUser';
 import { useTrip } from '../../hooks/useTrip';
+import { useUser } from '../../context/UserContext';
+import { WeatherWidget } from '../../components/WeatherWidget';
 
 export default function HomeScreen() {
-  const [user, setUser] = useState<LocalUser | null>(null);
+  const { user, themeColor } = useUser();
   const { trips, currentTrip, loading, createTrip, joinTrip, selectTrip } = useTrip();
 
   // Modal 狀態
@@ -40,14 +42,7 @@ export default function HomeScreen() {
   const [selectedDetailsTrip, setSelectedDetailsTrip] = useState<any>(null);
   const { leaveTrip } = useTrip();
 
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
-    const localUser = await getLocalUser();
-    setUser(localUser);
-  };
+  // 移除本地 loadUser，改用 context
 
   // 處理創建計畫
   const handleCreateTrip = async () => {
@@ -189,11 +184,16 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>日本旅遊助手</Text>
-        <Text style={styles.subtitle}>
-          {user ? `歡迎回來，${user.nickname}！` : '歡迎回來！'}
-        </Text>
+      <View style={[styles.header, { backgroundColor: themeColor }]}>
+        <View style={styles.headerInfo}>
+          <Text style={styles.subtitle}>
+            {user ? `Hello, ${user.nickname}！` : 'Hello！'}
+          </Text>
+          {currentTrip && <Text style={styles.headerTripName}>{currentTrip.name}</Text>}
+        </View>
+        <View style={{ marginTop: 10 }}>
+          {currentTrip && <WeatherWidget destination={currentTrip.destination} />}
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -208,7 +208,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.joinButton]}
+            style={[styles.actionButton, { backgroundColor: themeColor }]}
             onPress={() => setShowJoinModal(true)}
           >
             <Text style={styles.actionIcon}>🔗</Text>
@@ -225,7 +225,7 @@ export default function HomeScreen() {
                 key={trip.id}
                 style={[
                   styles.tripCard,
-                  currentTrip?.id === trip.id && styles.tripCardActive,
+                  currentTrip?.id === trip.id && { borderColor: themeColor },
                 ]}
                 onPress={() => setExpandedTripId(expandedTripId === trip.id ? null : trip.id)}
               >
@@ -233,7 +233,7 @@ export default function HomeScreen() {
                   <View style={styles.tripTitleWrapper}>
                     <Text style={styles.tripName}>{trip.name}</Text>
                     {currentTrip?.id === trip.id && (
-                      <View style={styles.activeBadge}>
+                      <View style={[styles.activeBadge, { backgroundColor: themeColor }]}>
                         <Text style={styles.activeBadgeText}>使用中</Text>
                       </View>
                     )}
@@ -370,7 +370,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
+                style={[styles.modalButton, { backgroundColor: themeColor }]}
                 onPress={handleCreateTrip}
                 disabled={creating}
               >
@@ -425,7 +425,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
+                style={[styles.modalButton, { backgroundColor: themeColor }]}
                 onPress={handleJoinTrip}
                 disabled={joining}
               >
@@ -453,7 +453,7 @@ export default function HomeScreen() {
                   <View style={styles.idCopyWrapper}>
                     <Text style={styles.detailValue}>{selectedDetailsTrip.id}</Text>
                     <TouchableOpacity onPress={() => copyTripId(selectedDetailsTrip.id)}>
-                      <Text style={styles.copyText}>複製</Text>
+                      <Text style={[styles.copyText, { color: themeColor }]}>複製</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -461,6 +461,11 @@ export default function HomeScreen() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>計畫名稱</Text>
                   <Text style={styles.detailValue}>{selectedDetailsTrip.name}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>計畫密碼</Text>
+                  <Text style={styles.detailValue}>{selectedDetailsTrip.password || '無'}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
@@ -481,7 +486,7 @@ export default function HomeScreen() {
             )}
 
             <TouchableOpacity
-              style={styles.detailsCloseBtn}
+              style={[styles.detailsCloseBtn, { backgroundColor: themeColor }]}
               onPress={() => setShowDetailsModal(false)}
             >
               <Text style={styles.confirmButtonText}>確認</Text>
@@ -511,8 +516,22 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#007AFF',
-    padding: 24,
-    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTripName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 4,
   },
   title: {
     fontSize: 28,
@@ -521,7 +540,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#fff',
     opacity: 0.9,
   },
@@ -578,17 +597,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  tripCardActive: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-    borderWidth: 2,
   },
   tripHeader: {
     marginBottom: 8,
@@ -730,7 +744,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeBadge: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#007AFF', // 這裡稍後會由 inline style 覆蓋，但為了結構保留
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

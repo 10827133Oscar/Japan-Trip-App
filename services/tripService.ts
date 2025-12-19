@@ -33,7 +33,8 @@ export const createTripWithPassword = async (
     throw new Error('此計畫 ID 已被使用，請換一個（例如：japan2024）');
   }
 
-  const hashedPassword = hashPassword(password);
+  // 直接存儲密碼（應使用者要求，方便查看）
+  const storedPassword = password;
 
   const participant: Participant = {
     deviceId: localUser.deviceId,
@@ -47,7 +48,7 @@ export const createTripWithPassword = async (
     destination,
     startDate: new Date(),
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7天後
-    password: hashedPassword,
+    password: storedPassword,
     creatorDeviceId: localUser.deviceId,
     participants: [participant],
     participantDeviceIds: [localUser.deviceId],
@@ -103,8 +104,8 @@ export const joinTripWithPassword = async (
     })),
   } as Trip;
 
-  // 驗證密碼
-  if (!verifyPassword(password, trip.password)) {
+  // 驗證密碼（改為直接比對，配合明文存儲）
+  if (password !== trip.password) {
     throw new Error('密碼錯誤');
   }
 

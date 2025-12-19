@@ -1,48 +1,26 @@
 import { Stack } from 'expo-router';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { getLocalUser } from '../services/localUser';
 import { TripProvider } from '../context/TripContext';
+import { UserProvider, useUser } from '../context/UserContext';
 
-export default function RootLayout() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const router = useRouter();
+function RootLayoutNav() {
+  const { user, loading } = useUser();
   const segments = useSegments();
-  const hasNavigated = useRef(false);
+  const router = useRouter();
 
   useEffect(() => {
-    checkLocalUser();
-  }, []);
+    if (loading) return;
+    const inTabsGroup = segments[0] === '(tabs)';
 
-  const checkLocalUser = async () => {
-    try {
-      const localUser = await getLocalUser();
-      setUser(localUser);
-    } catch (error) {
-      console.error('Error checking local user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (loading || hasNavigated.current) return;
-
-    const inAuthGroup = segments[0] === '(tabs)';
-
-    if (!user && inAuthGroup) {
-      hasNavigated.current = true;
+    if (!user && inTabsGroup) {
       router.replace('/login');
-    } else if (user && !inAuthGroup) {
-      hasNavigated.current = true;
+    } else if (user && (segments[0] === 'login' || segments.length === 0)) {
       router.replace('/(tabs)');
     }
   }, [user, loading, segments]);
 
-  if (loading) {
-    return null;
-  }
+  if (loading) return null;
 
   return (
     <TripProvider>
@@ -52,5 +30,13 @@ export default function RootLayout() {
         <Stack.Screen name="place-detail/[id]" options={{ headerShown: true, title: '景點詳情' }} />
       </Stack>
     </TripProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <UserProvider>
+      <RootLayoutNav />
+    </UserProvider>
   );
 }
