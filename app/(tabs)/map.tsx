@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTrip } from '../../hooks/useTrip';
 import { usePlaces } from '../../hooks/usePlaces';
@@ -8,8 +7,33 @@ import { useUser } from '../../context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
+// 條件式導入地圖組件
+let MapView: any;
+let Marker: any;
+let PROVIDER_GOOGLE: any;
+let Region: any;
+let WebMapView: any;
+
+if (Platform.OS === 'web') {
+  WebMapView = require('../../components/WebMapView').default;
+} else {
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default;
+  Marker = RNMaps.Marker;
+  PROVIDER_GOOGLE = RNMaps.PROVIDER_GOOGLE;
+  Region = RNMaps.Region;
+}
+
+// 定義通用的 Region 類型
+type MapRegion = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
 // 預設地圖中心（東京）
-const TOKYO_REGION: Region = {
+const TOKYO_REGION: MapRegion = {
   latitude: 35.6762,
   longitude: 139.6503,
   latitudeDelta: 0.1,
@@ -28,7 +52,7 @@ export default function MapScreen() {
 
   const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [region, setRegion] = useState<Region>(TOKYO_REGION);
+  const [region, setRegion] = useState<MapRegion>(TOKYO_REGION);
 
   // 獲取分類圖示
   const getCategoryIcon = (category?: string) => {
@@ -247,31 +271,44 @@ export default function MapScreen() {
 
       {/* 地圖 */}
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          initialRegion={region}
-          onPress={handleMapPress}
-          showsUserLocation
-          showsMyLocationButton
-          showsCompass
-          showsScale
-        >
-          {filteredPlaces.map((place) => (
-            <Marker
-              key={place.id}
-              coordinate={{
-                latitude: place.location.latitude,
-                longitude: place.location.longitude,
-              }}
-              title={place.name}
-              description={place.address}
-              pinColor={getMarkerColor(place.category)}
-              onPress={() => handleMarkerPress(place.id)}
-            />
-          ))}
-        </MapView>
+        {Platform.OS === 'web' ? (
+          <WebMapView
+            ref={mapRef}
+            places={filteredPlaces}
+            selectedPlace={selectedPlace}
+            onMarkerPress={handleMarkerPress}
+            onMapPress={(coordinate) => handleMapPress({ nativeEvent: { coordinate } })}
+            initialRegion={region}
+            getMarkerColor={getMarkerColor}
+            showUserLocation={true}
+          />
+        ) : (
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            initialRegion={region}
+            onPress={handleMapPress}
+            showsUserLocation
+            showsMyLocationButton
+            showsCompass
+            showsScale
+          >
+            {filteredPlaces.map((place) => (
+              <Marker
+                key={place.id}
+                coordinate={{
+                  latitude: place.location.latitude,
+                  longitude: place.location.longitude,
+                }}
+                title={place.name}
+                description={place.address}
+                pinColor={getMarkerColor(place.category)}
+                onPress={() => handleMarkerPress(place.id)}
+              />
+            ))}
+          </MapView>
+        )}
 
         {/* 新增模式提示 */}
         {/* 新增模式提示 - 移到左下角並簡化 */}
