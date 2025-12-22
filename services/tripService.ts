@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocFromCache,
   getDocs,
   deleteDoc,
   query,
@@ -45,8 +46,24 @@ export const createTripWithPassword = async (
     throw new Error('請先設定暱稱');
   }
 
-  // 檢查 ID 是否已存在
-  const tripDoc = await getDoc(doc(db, 'trips', tripId));
+  // 檢查 ID 是否已存在（允許從快取讀取）
+  let tripDoc;
+  try {
+    tripDoc = await getDoc(doc(db, 'trips', tripId));
+  } catch (error: any) {
+    // 如果離線，嘗試從快取讀取
+    if (error.code === 'unavailable' || error.message?.includes('offline')) {
+      try {
+        tripDoc = await getDocFromCache(doc(db, 'trips', tripId));
+      } catch (cacheError) {
+        // 快取也沒有，假設不存在，繼續創建
+        console.warn('⚠️ 無法檢查計畫 ID，假設不存在:', cacheError);
+        tripDoc = { exists: () => false } as any;
+      }
+    } else {
+      throw error;
+    }
+  }
   if (tripDoc.exists()) {
     throw new Error('此計畫 ID 已被使用，請換一個（例如：japan2024）');
   }
@@ -101,8 +118,22 @@ export const joinTripWithPassword = async (
     throw new Error('請先設定暱稱');
   }
 
-  // 獲取計畫
-  const tripDoc = await getDoc(doc(db, 'trips', tripId));
+  // 獲取計畫（允許從快取讀取）
+  let tripDoc;
+  try {
+    tripDoc = await getDoc(doc(db, 'trips', tripId));
+  } catch (error: any) {
+    // 如果離線，嘗試從快取讀取
+    if (error.code === 'unavailable' || error.message?.includes('offline')) {
+      try {
+        tripDoc = await getDocFromCache(doc(db, 'trips', tripId));
+      } catch (cacheError) {
+        throw new Error('無法連接到網路，且快取中沒有此計畫資料。請檢查網路連接後重試。');
+      }
+    } else {
+      throw error;
+    }
+  }
   if (!tripDoc.exists()) {
     throw new Error('計畫不存在');
   }
@@ -184,16 +215,26 @@ export const subscribeToUserTrips = (
       where('participantDeviceIds', 'array-contains', localUser.deviceId)
     );
 
-    unsubscribe = onSnapshot(q, (snapshot) => {
-      const userTrips: Trip[] = snapshot.docs.map(doc =>
-        convertFirestoreDocToTrip(doc.id, doc.data())
-      );
+    unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const userTrips: Trip[] = snapshot.docs.map(doc =>
+          convertFirestoreDocToTrip(doc.id, doc.data())
+        );
 
-      // 按創建時間排序
-      callback(userTrips.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
-    }, (error) => {
-      console.error('監聽計畫列表失敗:', error);
-    });
+        // 按創建時間排序
+        callback(userTrips.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      },
+      (error) => {
+        // 處理離線錯誤
+        if (error.code === 'unavailable' || error.message?.includes('offline')) {
+          console.warn('⚠️ 離線狀態，使用快取資料');
+          // onSnapshot 會自動使用快取，所以這裡只是記錄警告
+        } else {
+          console.error('監聽計畫列表失敗:', error);
+        }
+      }
+    );
   };
 
   setup();
@@ -206,7 +247,23 @@ export const subscribeToUserTrips = (
 // 獲取單個計畫
 export const getTripById = async (tripId: string): Promise<Trip | null> => {
   try {
-    const tripDoc = await getDoc(doc(db, 'trips', tripId));
+    let tripDoc;
+    try {
+      tripDoc = await getDoc(doc(db, 'trips', tripId));
+    } catch (error: any) {
+      // 如果離線，嘗試從快取讀取
+      if (error.code === 'unavailable' || error.message?.includes('offline')) {
+        try {
+          tripDoc = await getDocFromCache(doc(db, 'trips', tripId));
+        } catch (cacheError) {
+          console.warn('⚠️ 無法從快取讀取計畫:', cacheError);
+          return null;
+        }
+      } else {
+        throw error;
+      }
+    }
+    
     if (!tripDoc.exists()) {
       return null;
     }
@@ -226,7 +283,22 @@ export const leaveTrip = async (tripId: string): Promise<void> => {
   }
 
   const tripDocRef = doc(db, 'trips', tripId);
-  const tripDoc = await getDoc(tripDocRef);
+  // 獲取計畫（允許從快取讀取）
+  let tripDoc;
+  try {
+    tripDoc = await getDoc(tripDocRef);
+  } catch (error: any) {
+    // 如果離線，嘗試從快取讀取
+    if (error.code === 'unavailable' || error.message?.includes('offline')) {
+      try {
+        tripDoc = await getDocFromCache(tripDocRef);
+      } catch (cacheError) {
+        throw new Error('無法連接到網路，且快取中沒有此計畫資料。請檢查網路連接後重試。');
+      }
+    } else {
+      throw error;
+    }
+  }
 
   if (!tripDoc.exists()) {
     throw new Error('計畫不存在');

@@ -123,15 +123,27 @@ export const subscribeToPlaces = (
     orderBy('createdAt', 'desc')
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const places = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt.toDate(),
-      visitDate: doc.data().visitDate ? doc.data().visitDate.toDate() : undefined,
-    } as Place));
-    callback(places);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const places = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+        visitDate: doc.data().visitDate ? doc.data().visitDate.toDate() : undefined,
+      } as Place));
+      callback(places);
+    },
+    (error) => {
+      // 處理離線錯誤
+      if (error.code === 'unavailable' || error.message?.includes('offline')) {
+        console.warn('⚠️ 離線狀態，使用快取資料');
+        // onSnapshot 會自動使用快取，所以這裡只是記錄警告
+      } else {
+        console.error('監聽景點變化錯誤:', error);
+      }
+    }
+  );
 };
 
 // ========== 行程管理 ==========

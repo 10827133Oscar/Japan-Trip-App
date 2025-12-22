@@ -34,9 +34,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     const updateProfile = async (nickname: string, color: string) => {
+        // 先嘗試更新現有用戶
         const updated = await updateLocalUser(nickname, color);
-        if (updated) setUser(updated);
-        return updated!;
+        if (updated) {
+            setUser(updated);
+            return updated;
+        }
+        // 如果沒有現有用戶（新用戶），重新載入以獲取剛保存的用戶
+        await loadUser();
+        const newUser = await getLocalUser();
+        if (newUser) {
+            setUser(newUser);
+            return newUser;
+        }
+        throw new Error('無法創建或更新用戶');
     };
 
     const logout = async () => {

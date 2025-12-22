@@ -52,7 +52,15 @@ export function TripProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
+        setLoading(true);
+        // 設置超時，避免 loading 狀態持續太久（例如離線時）
+        const loadingTimeout = setTimeout(() => {
+            console.warn('⚠️ 載入計畫列表超時，可能處於離線狀態');
+            setLoading(false);
+        }, 10000); // 10 秒超時
+
         const unsubscribe = subscribeToUserTrips((updatedTrips) => {
+            clearTimeout(loadingTimeout);
             setTrips(updatedTrips);
             // 如果還沒有選中任何計畫，或者當前計畫已不在列表中
             if (!currentTrip || !updatedTrips.find(t => t.id === currentTrip.id)) {
@@ -67,7 +75,10 @@ export function TripProvider({ children }: { children: ReactNode }) {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            clearTimeout(loadingTimeout);
+            unsubscribe();
+        };
     }, [currentTrip?.id]);
 
     const createTrip = async (name: string, destination: string, password: string, tripId: string) => {

@@ -10,11 +10,11 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useLocalAuth } from '../../hooks/useLocalAuth';
+import { useUser } from '../../context/UserContext';
 import { AVAILABLE_COLORS } from '../../services/localUser';
 
 export default function ProfileScreen() {
-  const { user, updateUser, logout } = useLocalAuth();
+  const { user, updateUser, logout } = useUser();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -178,6 +178,9 @@ export default function ProfileScreen() {
                 />
               ))}
             </View>
+            <Text style={styles.colorHint}>
+              💡 主題顏色會在儲存後立即更新
+            </Text>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -434,5 +437,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  colorHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: -12,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

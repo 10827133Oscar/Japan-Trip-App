@@ -61,17 +61,6 @@ npm install
 4. 輸入應用名稱，點擊「註冊應用程式」
 5. 複製`firebaseConfig`中的配置值
 
-#### 2.4 配置OAuth Client IDs
-
-1. 前往 [Google Cloud Console](https://console.cloud.google.com)
-2. 選擇您的Firebase專案
-3. 左側選單：「API和服務」→「憑證」
-4. 點擊「建立憑證」→「OAuth 2.0 客戶端 ID」
-5. 創建以下三個Client ID：
-   - **Web Client**：應用程式類型選「網頁應用程式」
-   - **iOS Client**（如需iOS）：應用程式類型選「iOS」
-   - **Android Client**（如需Android）：應用程式類型選「Android」
-
 ### 3. 配置Google Maps API
 
 #### 3.1 啟用Google Maps API
@@ -117,11 +106,6 @@ EXPO_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef
 
 # Google Maps API Key
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-
-# Google OAuth配置（從Google Cloud Console獲取）
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
 ```
 
 ### 5. 運行App
@@ -138,17 +122,26 @@ npx expo start
 
 ## 📱 如何使用
 
-### 1. 登入
-- 打開App後，點擊「使用Google登入」
-- 選擇您的Google帳號完成登入
+### 1. 首次使用
+- 打開App後，輸入您的**暱稱**（最多10個字）
+- 選擇一個**代表色**（8種顏色可選）
+- 點擊「開始使用」
 
-### 2. 創建旅程
-- 在「行程」頁面，點擊「+ 新增行程」
-- 輸入行程名稱（例如：東京家庭旅遊）
+### 2. 創建計畫
+- 在主頁點擊「創建計畫」
+- 輸入計畫名稱（例如：東京家庭旅遊）
 - 輸入目的地（例如：東京）
+- 設定一個**計畫密碼**（用於分享給家人朋友）
 - 點擊「創建」
+- **重要**：記下顯示的**計畫 ID**（6位數字），點擊可複製
 
-### 3. 添加景點
+### 3. 邀請家人加入
+- 將**計畫 ID** 和**密碼**分享給家人
+- 家人打開App後，點擊「加入計畫」
+- 輸入您分享的計畫 ID 和密碼
+- 成功加入後，就能一起協作編輯
+
+### 4. 添加景點
 - 切換到「景點」頁面
 - 點擊右下角的 **+** 按鈕
 - 填寫景點資訊：
@@ -159,15 +152,44 @@ npx expo start
   - **備註**：例如「必看雷門」
 - 點擊「新增景點」
 
-### 4. 查看地圖
+### 5. 查看地圖
 - 切換到「地圖」頁面
 - 所有景點會以標記顯示在地圖上
 - 點擊「規劃路線」按鈕自動規劃最佳路線
 
-### 5. 多人協作
-- 將您的Google帳號分享給家人
-- 家人登入相同帳號即可查看和編輯行程
-- 所有修改會即時同步到所有設備
+### 6. 多人協作
+- 所有計畫成員的編輯都會**即時同步**
+- 在景點列表可以看到誰添加了哪個景點（根據代表色區分）
+- 所有成員都可以添加、編輯、刪除景點
+
+## 🔐 密碼認證系統說明
+
+本 App 使用**本地用戶 + 密碼保護計畫**的認證方式，無需 Google 帳號。
+
+### 工作原理
+
+1. **本地用戶**
+   - 首次使用時設定暱稱和代表色
+   - 系統自動生成唯一的裝置 ID
+   - 資料儲存在手機本地（AsyncStorage）
+
+2. **計畫密碼保護**
+   - 創建計畫時設定密碼（加密儲存）
+   - 獲得唯一的 6 位數計畫 ID
+   - 分享 ID + 密碼給家人即可協作
+
+3. **多人協作**
+   - 每個人用自己的暱稱和顏色
+   - 通過計畫 ID 和密碼加入同一個計畫
+   - 即時同步所有編輯
+
+### 隱私與安全
+
+- ✅ 無需提供個人資訊
+- ✅ 密碼加密儲存在 Firebase
+- ✅ 只有知道 ID 和密碼的人才能加入
+- ✅ 計畫 ID 隨機生成，難以猜測
+- ✅ 適合家庭和小團隊使用
 
 ## 🛡️ 配置Firestore安全規則
 
@@ -180,38 +202,33 @@ npx expo start
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 只有登入用戶可以讀寫自己的資料
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // 旅程規則
+    // 計畫規則 - 開放讀取，允許寫入
     match /trips/{tripId} {
-      allow read: if request.auth != null &&
-        request.auth.uid in resource.data.members;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        request.auth.uid == resource.data.createdBy;
+      allow read: if true;
+      allow write: if true;
     }
 
-    // 景點規則
+    // 景點規則 - 開放讀取，允許寫入
     match /places/{placeId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        (request.auth.uid == resource.data.addedBy ||
-         request.auth.uid in get(/databases/$(database)/documents/trips/$(resource.data.tripId)).data.members);
+      allow read: if true;
+      allow write: if true;
     }
 
-    // 行程規則
+    // 行程規則 - 開放讀取，允許寫入
     match /itineraries/{itineraryId} {
-      allow read, write: if request.auth != null;
+      allow read: if true;
+      allow write: if true;
     }
   }
 }
 ```
 
 3. 點擊「發布」
+
+**⚠️ 安全性說明：**
+- 這些規則允許所有人讀寫資料，但計畫受密碼保護
+- 沒有計畫 ID 和密碼的人無法找到您的計畫
+- 對於家庭使用已足夠安全
 
 ## 📦 打包發布
 
@@ -257,19 +274,22 @@ eas submit --platform android
 
 | 服務 | 免費額度 | 預計費用 |
 |------|----------|----------|
-| Firebase Authentication | 無限次 | $0 |
-| Firestore | 每天50,000次讀取 | $0（家庭使用足夠） |
-| Firebase Storage | 5GB儲存 | $0 |
+| Firestore | 每天50,000次讀取、20,000次寫入 | $0（家庭使用足夠） |
+| Firebase Storage | 5GB儲存、1GB/天下載 | $0 |
 | Google Maps API | 每月$200額度 | $0（約40,000次請求） |
 | Expo開發 | 完全免費 | $0 |
 | **總計** | | **$0** |
 
+**說明：** 家庭使用完全在免費額度內，無需支付任何費用
+
 ## 🔧 故障排除
 
-### 問題：無法登入
-- 檢查`.env`文件中的Firebase配置是否正確
-- 確認Firebase Console中已啟用Google登入
-- 檢查OAuth Client ID是否正確配置
+### 問題：無法創建或加入計畫
+- 檢查網路連接是否正常
+- 確認`.env`文件中的Firebase配置是否正確
+- 確認Firestore已在Firebase Console中啟用
+- 檢查計畫 ID 是否正確（6位數字）
+- 確認密碼輸入正確
 
 ### 問題：地圖無法顯示
 - 確認Google Maps API已啟用

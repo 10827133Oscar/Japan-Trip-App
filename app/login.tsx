@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { saveLocalUser, AVAILABLE_COLORS } from '../services/localUser';
+import { useUser } from '../context/UserContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { updateUser } = useUser();
   const [nickname, setNickname] = useState('');
   const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0].value);
   const [loading, setLoading] = useState(false);
@@ -31,8 +33,17 @@ export default function WelcomeScreen() {
 
     try {
       setLoading(true);
+      // 保存用戶資料到本地存儲
       await saveLocalUser(nickname.trim(), selectedColor);
-      // 導航到計畫列表頁面
+      // 更新 UserContext 狀態（重要：確保狀態同步，這樣路由檢查才能正確）
+      const updatedUser = await updateUser(nickname.trim(), selectedColor);
+      
+      // 確認用戶狀態已更新
+      if (!updatedUser) {
+        throw new Error('用戶狀態更新失敗');
+      }
+      
+      // 導航到計畫列表頁面（狀態已更新，路由檢查會通過）
       router.replace('/(tabs)');
     } catch (error) {
       console.error('儲存用戶資料失敗:', error);
