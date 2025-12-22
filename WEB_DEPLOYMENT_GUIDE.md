@@ -172,9 +172,63 @@ vercel env add EXPO_PUBLIC_FIREBASE_API_KEY
 ### Q1: 部署後看不到地圖？
 
 **A:** 檢查 Google Maps API Key 的設定：
-1. 確認環境變數已設定
-2. 確認 API Key 已啟用「Maps JavaScript API」
-3. 確認 API Key 沒有網域限制，或已加入 Vercel 網域
+
+1. **確認環境變數已設定**
+   - 在 Vercel Dashboard → Settings → Environment Variables
+   - 確認 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` 已設定
+
+2. **啟用 Google Maps JavaScript API** ⚠️ **最重要！**
+   - 前往 [Google Cloud Console](https://console.cloud.google.com/)
+   - 選擇你的專案（與 Firebase 相同的專案）
+   - 進入「API 和服務」→「程式庫」
+   - 搜尋「**Maps JavaScript API**」
+   - 點擊「**啟用**」按鈕
+   - ⚠️ **必須啟用此 API，否則會出現 `ApiNotActivatedMapError` 錯誤**
+   - 📖 詳細步驟請參考：`GOOGLE_MAPS_API_SETUP.md`
+
+3. **⚠️ 最常見問題：修改了錯誤的 API Key**
+   - **問題：** 如果出現 `ApiTargetBlockedMapError` 錯誤
+   - **原因：** 你可能有多個 API Key，修改了錯誤的那個
+
+   **解決步驟：**
+
+   a. **確認 Vercel 使用哪個 API Key**
+   - 前往 Vercel Dashboard → Settings → Environment Variables
+   - 查看 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` 的值
+   - 記下開頭幾個字元（例如：AIzaSy...）
+
+   b. **在 Google Cloud Console 找到正確的 API Key**
+   - 進入「API 和服務」→「憑證」
+   - 你可能會看到多個 API Key，例如：
+     - `Japan Trip Maps API Key`
+     - `Browser key (auto created by Firebase)`
+   - 點擊每個 API Key，對比開頭字元
+   - 找到與 Vercel 相同的那個 ✅
+
+   c. **修改正確的 API Key 限制設定**
+   - 點擊進入正確的 API Key
+   - **應用程式限制**：選擇「**無**」
+   - **API 限制**：選擇「**不限制金鑰**」（或確保勾選 Maps JavaScript API）
+   - 點擊「儲存」
+
+4. **確認 API Key 權限**
+   - 進入「API 和服務」→「憑證」
+   - 點擊你的 API Key（確保是 Vercel 使用的那個）
+   - 在「API 限制」中：
+     - 選擇「限制金鑰」
+     - 確認「Maps JavaScript API」已勾選 ✅
+     - 或選擇「不限制」（開發階段推薦）
+
+5. **確認網域限制（如果有的話）**
+   - 在 API Key 設定中，找到「應用程式限制」
+   - 如果選擇「HTTP 引用來源（網站）」，請加入：
+     - `https://*.vercel.app/*`
+     - `http://localhost:*`（開發用）
+   - 或選擇「無」（開發階段推薦）
+
+6. **等待 API 生效**
+   - API 啟用後可能需要 1-5 分鐘才會生效
+   - 清除瀏覽器快取後重新載入網頁（Ctrl+Shift+R 或 Cmd+Shift+R）
 
 ### Q2: 部署失敗怎麼辦？
 
