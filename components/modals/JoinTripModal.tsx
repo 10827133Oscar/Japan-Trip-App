@@ -6,10 +6,10 @@ import {
     Modal,
     TouchableOpacity,
     TextInput,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { Trip } from '../../types';
+import { Alert } from '../../utils/alert';
 
 interface JoinTripModalProps {
     visible: boolean;

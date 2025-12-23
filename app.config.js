@@ -58,7 +58,6 @@ export default {
             bundler: "metro"
         },
         plugins: [
-            "expo-web-browser",
             "expo-location",
             "expo-router",
             "expo-font"

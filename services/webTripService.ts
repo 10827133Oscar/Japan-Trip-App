@@ -219,12 +219,13 @@ export const leaveTrip = async (tripId: string): Promise<void> => {
     throw new Error('請先設定暱稱');
   }
 
-  const tripData = await getDocument('trips', tripId);
-  if (!tripData) {
+  // 先讀取完整資料，確保保留所有欄位
+  const fullTripData = await getDocument('trips', tripId);
+  if (!fullTripData) {
     throw new Error('計畫不存在');
   }
 
-  const trip = convertToTrip(tripData, tripId);
+  const trip = convertToTrip(fullTripData, tripId);
 
   // 移除參與者
   const updatedParticipants = trip.participants.filter(
@@ -235,8 +236,15 @@ export const leaveTrip = async (tripId: string): Promise<void> => {
     (id) => id !== localUser.deviceId
   );
 
-  // 更新 Firestore
+  // 如果沒有參與者了，刪除計畫
+  if (updatedParticipants.length === 0) {
+    await deleteDocument('trips', tripId);
+    return;
+  }
+
+  // 更新 Firestore - 保留所有現有欄位，只更新參與者相關欄位
   await setDocument('trips', tripId, {
+    ...fullTripData, // 保留所有現有欄位
     participants: updatedParticipants,
     participantDeviceIds: updatedDeviceIds,
   });

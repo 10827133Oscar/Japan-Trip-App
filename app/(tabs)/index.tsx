@@ -5,9 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { Trip } from '../../types';
 import { useTrip } from '../../hooks/useTrip';
 import { useUser } from '../../context/UserContext';
@@ -164,15 +164,21 @@ export default function HomeScreen() {
 
                 {/* 參與者顏色指示 */}
                 <View style={styles.participantsColors}>
-                  {trip.participants.map((p, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.participantDot,
-                        { backgroundColor: p.color },
-                      ]}
-                    />
-                  ))}
+                  {trip.participants.map((p, idx) => {
+                    // 如果是當前用戶，使用 UserContext 中的顏色（最新）
+                    const displayColor = (p.deviceId === user?.deviceId && user?.color) 
+                      ? user.color 
+                      : p.color;
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.participantDot,
+                          { backgroundColor: displayColor },
+                        ]}
+                      />
+                    );
+                  })}
                 </View>
               </TouchableOpacity>
             ))}

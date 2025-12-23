@@ -6,11 +6,11 @@ import {
     Modal,
     TouchableOpacity,
     TextInput,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Trip } from '../../types';
+import { Alert } from '../../utils/alert';
 
 interface CreateTripModalProps {
     visible: boolean;

@@ -6,10 +6,11 @@ import {
     Modal,
     TouchableOpacity,
     ScrollView,
-    Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Trip, Participant } from '../../types';
+import { useUser } from '../../context/UserContext';
+import { Alert } from '../../utils/alert';
 
 interface TripDetailsModalProps {
     visible: boolean;
@@ -26,9 +27,21 @@ export const TripDetailsModal: React.FC<TripDetailsModalProps> = ({
     themeColor,
     onClose,
 }) => {
+    const { user } = useUser();
+    
     const copyTripId = async (tripId: string) => {
         await Clipboard.setStringAsync(tripId);
         Alert.alert('已複製', '計畫 ID 已複製到剪貼簿');
+    };
+
+    // 獲取參與者的實際顏色（如果當前用戶修改了顏色，使用當前顏色）
+    const getParticipantColor = (participant: Participant): string => {
+        // 如果是當前用戶，使用 UserContext 中的顏色（最新）
+        if (participant.deviceId === currentDeviceId && user?.color) {
+            return user.color;
+        }
+        // 否則使用儲存在 Firestore 中的顏色
+        return participant.color;
     };
 
     if (!trip) return null;
@@ -69,7 +82,7 @@ export const TripDetailsModal: React.FC<TripDetailsModalProps> = ({
                             <Text style={styles.detailLabel}>參與成員 ({trip.participants.length})</Text>
                             {trip.participants.map((p: Participant, idx: number) => (
                                 <View key={idx} style={styles.memberItem}>
-                                    <View style={[styles.memberColor, { backgroundColor: p.color }]} />
+                                    <View style={[styles.memberColor, { backgroundColor: getParticipantColor(p) }]} />
                                     <Text style={styles.memberName}>
                                         {p.nickname} {p.deviceId === currentDeviceId ? '(您)' : ''}
                                     </Text>

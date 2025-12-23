@@ -7,11 +7,11 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { saveLocalUser, AVAILABLE_COLORS } from '../services/localUser';
 import { useUser } from '../context/UserContext';
+import { Alert } from '../utils/alert';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function WelcomeScreen() {
         />
 
         <Text style={styles.label}>選擇您的顏色</Text>
-        <Text style={styles.hint}>用於在協作中區分不同參與者</Text>
+        <Text style={styles.hint}>用於在協作中區分不同參與者（後續可修改）</Text>
 
         <View style={styles.colorGrid}>
           {AVAILABLE_COLORS.map((color) => (
@@ -132,7 +132,7 @@ const FeatureItem = ({ icon, text }: { icon: string; text: string }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FFB6C1', // 淺粉紅色（櫻花色）
   },
   content: {
     padding: 24,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   startButtonText: {
-    color: '#007AFF',
+    color: '#FF69B4', // 深粉紅色，與背景搭配
     fontSize: 18,
     fontWeight: 'bold',
   },

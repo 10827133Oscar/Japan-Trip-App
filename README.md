@@ -442,8 +442,8 @@ eas submit --platform ios
 
 - **[網頁版部署指南](WEB_DEPLOYMENT_GUIDE.md)** - 完整的 Vercel 部署教學
 - **[Google Maps API 設定](GOOGLE_MAPS_API_SETUP.md)** - Maps JavaScript API 設定步驟
-- **[網頁版移植進度](WEB_MIGRATION_PROGRESS.md)** - 網頁版開發完整記錄
-- **[部署資訊總覽](DEPLOYMENT_INFO.md)** - 所有部署相關資訊
+- **[APK 建置指南](APK_BUILD_GUIDE.md)** - Android APK 建置與問題解決
+- **[環境變數設置](ENV_SETUP_STEPS.md)** - EAS Build 環境變數設置步驟
 - **[Firestore 規則部署](DEPLOY_FIRESTORE_RULES.md)** - 資料庫安全規則設定
 
 ## 🤝 協作開發
@@ -457,6 +457,12 @@ eas submit --platform ios
 5. 提交Pull Request
 
 ## 📄 版本歷史
+
+- **v2.0.0** (2025-01) - 網頁版完全部署完成 🎉
+  - ✅ 修復 Google Maps API Key 配置問題
+  - ✅ 網頁版地圖功能完全正常運作
+  - ✅ 所有核心功能 100% 完成
+  - ✅ 跨平台架構完全穩定
 
 - **v1.3.0** (2024-12) - 網頁版完整部署
   - ✅ 新增網頁版支援（Vercel）
