@@ -20,7 +20,10 @@ export const usePlaces = (tripId: string | null) => {
       return;
     }
 
+    // 切換計畫時立即清空舊景點
+    setPlaces([]);
     setLoading(true);
+
     const unsubscribe = subscribeToPlaces(tripId, (updatedPlaces) => {
       setPlaces(updatedPlaces);
       setLoading(false);

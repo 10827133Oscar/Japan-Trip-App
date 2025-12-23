@@ -116,22 +116,27 @@ export const subscribeToPlaces = (
   callback: (places: Place[]) => void
 ): (() => void) => {
   let isActive = true;
-  let lastPlaces: Place[] = [];
+  let lastPlaces: Place[] | null = null; // 初始為 null，確保第一次總是觸發
 
   const poll = async () => {
     if (!isActive) return;
 
     try {
       const places = await getTripPlaces(tripId);
-      
-      // 只在資料變化時調用 callback
-      const placesChanged = JSON.stringify(places) !== JSON.stringify(lastPlaces);
+
+      // 第一次執行或資料變化時調用 callback
+      const placesChanged = lastPlaces === null || JSON.stringify(places) !== JSON.stringify(lastPlaces);
       if (placesChanged) {
         lastPlaces = places;
         callback(places);
       }
     } catch (error) {
       console.error('輪詢景點錯誤:', error);
+      // 即使出錯也要調用 callback，避免永遠 loading
+      if (lastPlaces === null) {
+        callback([]);
+        lastPlaces = [];
+      }
     }
 
     // 每 2 秒輪詢一次

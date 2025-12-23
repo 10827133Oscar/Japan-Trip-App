@@ -48,12 +48,12 @@ export const setDocument = async (
   docId: string,
   data: any
 ): Promise<void> => {
-  const url = `${FIRESTORE_REST_API}/${collection}/${docId}`;
-  
   const firestoreData = convertToFirestoreFormat(data);
 
   try {
-    const response = await fetch(url, {
+    // 先嘗試更新（PATCH）
+    const patchUrl = `${FIRESTORE_REST_API}/${collection}/${docId}`;
+    const patchResponse = await fetch(patchUrl, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -63,9 +63,36 @@ export const setDocument = async (
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to set document: ${response.status} ${response.statusText}`);
+    // 如果更新成功，直接返回
+    if (patchResponse.ok) {
+      return;
     }
+
+    // 如果是 404（文檔不存在），則創建新文檔
+    if (patchResponse.status === 404) {
+      const createUrl = `${FIRESTORE_REST_API}/${collection}?documentId=${docId}`;
+      const createResponse = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: firestoreData,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error('Create document error:', errorText);
+        throw new Error(`Failed to create document: ${createResponse.status} ${createResponse.statusText}`);
+      }
+      return;
+    }
+
+    // 其他錯誤
+    const errorText = await patchResponse.text();
+    console.error('Update document error:', errorText);
+    throw new Error(`Failed to update document: ${patchResponse.status} ${patchResponse.statusText}`);
   } catch (error: any) {
     console.error('❌ REST API setDocument error:', error);
     throw error;
@@ -224,7 +251,12 @@ function convertToFirestoreValue(value: any): any {
   }
 
   if (typeof value === 'number') {
-    return { integerValue: String(value) };
+    // 判斷是整數還是小數
+    if (Number.isInteger(value)) {
+      return { integerValue: String(value) };
+    } else {
+      return { doubleValue: value };
+    }
   }
 
   if (typeof value === 'string') {
