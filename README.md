@@ -1,10 +1,13 @@
 # 日本旅遊助手 🗾
 
-一個專為家庭旅遊設計的跨平台移動App，支持多人協作、地圖標記、路線規劃等功能。
+一個專為家庭旅遊設計的跨平台應用，支持多人協作、地圖標記、路線規劃等功能。
+
+🌐 **網頁版上線：** https://japan-trip-app-nine.vercel.app
 
 ## ✨ 功能特色
 
-- 📱 **跨平台**：一次開發，iOS和Android都能使用
+- 📱 **多平台支援**：Android APK + 網頁版（支援 iPhone、電腦）
+- 🌐 **免費網頁版**：無需下載 App，瀏覽器即可使用
 - 👨‍👩‍👧‍👦 **多人協作**：家人可以一起編輯行程，即時同步
 - 🗺️ **地圖標記**：在地圖上標記所有景點位置
 - 🚶 **路線規劃**：自動規劃最佳遊覽路線
@@ -12,8 +15,57 @@
 - 🔐 **密碼保護**：每個計畫可設定密碼，只有知道密碼的人才能加入
 - 🎨 **個性化**：自訂暱稱和代表色
 - ☁️ **雲端同步**：資料自動保存在雲端
+- 💰 **完全免費**：所有功能免費使用，無需付費
 
-## 🚀 快速開始
+## 🌐 網頁版使用（推薦給 iPhone 用戶）
+
+### 直接使用（無需安裝）
+
+1. **打開網址：** https://japan-trip-app-nine.vercel.app
+2. **開始使用** - 設定暱稱和顏色即可
+
+### 安裝到主畫面（像 App 一樣使用）
+
+**iPhone 用戶（Safari）：**
+1. 打開網址：https://japan-trip-app-nine.vercel.app
+2. 點擊底部的「分享」按鈕
+3. 選擇「加入主畫面」
+4. 完成！現在可以像 App 一樣打開使用
+
+**Android 用戶（Chrome）：**
+1. 打開網址：https://japan-trip-app-nine.vercel.app
+2. 點擊右上角「⋮」選單
+3. 選擇「新增至主畫面」
+4. 完成！
+
+**桌面瀏覽器：**
+- 直接在瀏覽器中使用，無需安裝
+- 建議使用 Chrome、Safari、Edge 等現代瀏覽器
+
+### 網頁版 vs 原生 App
+
+| 功能 | 網頁版 | Android APK |
+|------|--------|-------------|
+| 創建/加入計畫 | ✅ | ✅ |
+| 新增/編輯景點 | ✅ | ✅ |
+| 地圖顯示 | ✅ | ✅ |
+| 多人協作 | ✅ | ✅ |
+| 即時同步 | ✅ (2-5秒輪詢) | ✅ (即時) |
+| 離線使用 | ❌ | ✅ |
+| 安裝方式 | 瀏覽器/加入主畫面 | 下載 APK |
+| iPhone 支援 | ✅ | ❌ |
+| 無需下載 | ✅ | ❌ |
+
+**推薦：**
+- **iPhone 用戶** → 使用網頁版
+- **Android 用戶** → 可使用 APK 或網頁版
+- **電腦用戶** → 使用網頁版
+
+---
+
+## 🚀 開發者快速開始
+
+> **注意：** 以下內容適用於開發者。一般用戶請直接使用網頁版：https://japan-trip-app-nine.vercel.app
 
 ### 前置要求
 
@@ -110,8 +162,19 @@ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 ### 5. 運行App
 
+#### 方式 1：運行網頁版（推薦）
+
 ```bash
-# 啟動開發伺服器
+# 啟動網頁版開發伺服器
+npm run web
+```
+
+然後在瀏覽器打開：http://localhost:8081
+
+#### 方式 2：運行原生 App（需要手機）
+
+```bash
+# 啟動 Expo 開發伺服器
 npx expo start
 ```
 
@@ -232,55 +295,94 @@ service cloud.firestore {
 
 ## 📦 打包發布
 
-### 測試版（給家人使用）
+### 🌐 網頁版部署到 Vercel（完全免費，推薦）
 
-**iOS - TestFlight：**
 ```bash
-# 安裝EAS CLI
+# 1. 構建網頁版
+npm run build
+
+# 2. 安裝 Vercel CLI
+npm install -g vercel
+
+# 3. 登入 Vercel
+vercel login
+
+# 4. 部署到 Vercel（第一次部署）
+vercel
+
+# 5. 部署到生產環境
+vercel --prod
+```
+
+**設定環境變數（在 Vercel Dashboard）：**
+1. 前往 Vercel Dashboard → 你的專案 → Settings → Environment Variables
+2. 添加以下變數：
+   - `EXPO_PUBLIC_FIREBASE_API_KEY`
+   - `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
+   - `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `EXPO_PUBLIC_FIREBASE_APP_ID`
+   - `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`
+
+**詳細部署指南：** 請參考 `WEB_DEPLOYMENT_GUIDE.md`
+
+---
+
+### 📱 Android APK（給 Android 用戶）
+
+**測試版（內部分享）：**
+```bash
+# 安裝 EAS CLI
 npm install -g eas-cli
 
-# 登入Expo帳號
+# 登入 Expo 帳號
 eas login
 
-# 建立iOS build
-eas build --platform ios --profile preview
-
-# 上傳到TestFlight
-```
-
-**Android - 內部測試：**
-```bash
-# 建立Android build
+# 建立 Android APK
 eas build --platform android --profile preview
 
-# 下載APK並分享給家人
+# 下載 APK 並分享給家人
 ```
 
-### 正式發布
-
-**iOS App Store：**（需要Apple Developer帳號，$99/年）
-```bash
-eas build --platform ios --profile production
-eas submit --platform ios
-```
-
-**Google Play Store：**（需要Google Play開發者帳號，$25一次性）
+**正式發布到 Google Play：**（需要 Google Play 開發者帳號，$25 一次性）
 ```bash
 eas build --platform android --profile production
 eas submit --platform android
 ```
 
+---
+
+### 🍎 iOS（不推薦，建議使用網頁版）
+
+**為什麼不推薦：**
+- 需要 Apple Developer 帳號（$99/年）
+- 審核流程複雜且耗時
+- 網頁版可完美支援 iPhone
+
+**如果仍要發布到 App Store：**
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios
+```
+
 ## 💰 成本估算
 
-| 服務 | 免費額度 | 預計費用 |
-|------|----------|----------|
-| Firestore | 每天50,000次讀取、20,000次寫入 | $0（家庭使用足夠） |
-| Firebase Storage | 5GB儲存、1GB/天下載 | $0 |
-| Google Maps API | 每月$200額度 | $0（約40,000次請求） |
-| Expo開發 | 完全免費 | $0 |
-| **總計** | | **$0** |
+| 服務 | 免費額度 | 預計費用 | 說明 |
+|------|----------|----------|------|
+| **Vercel 網頁託管** | 100 GB 流量/月 | **$0** | 網頁版部署平台 |
+| **Firestore** | 每天 50,000 次讀取、20,000 次寫入 | **$0** | 資料庫 |
+| **Firebase Storage** | 5GB 儲存、1GB/天下載 | **$0** | 圖片儲存（可選） |
+| **Google Maps API** | 每月 $200 額度 | **$0** | 約 40,000 次請求 |
+| **Expo 開發** | 完全免費 | **$0** | 開發框架 |
+| **總計** | | **$0** | 🎉 |
 
-**說明：** 家庭使用完全在免費額度內，無需支付任何費用
+**說明：**
+- ✅ 網頁版 + Android APK 完全免費
+- ✅ 家庭使用完全在免費額度內
+- ✅ 無需 Apple Developer 帳號（$99/年）
+- ✅ 無需 Google Play 開發者帳號（$25）
+- ✅ 總成本：**$0**
 
 ## 🔧 故障排除
 
@@ -308,13 +410,41 @@ eas submit --platform android
 
 ## 📝 技術棧
 
-- **前端框架**：React Native + Expo
-- **導航**：Expo Router
-- **認證**：Firebase Authentication
-- **資料庫**：Cloud Firestore
-- **地圖**：Google Maps SDK
-- **狀態管理**：React Hooks + Context
+### 核心技術
+- **前端框架**：React Native + Expo SDK 54
+- **導航**：Expo Router（檔案系統路由）
+- **狀態管理**：React Hooks + Context API
 - **語言**：TypeScript
+
+### 資料庫與後端
+- **資料庫**：Cloud Firestore
+  - 原生 App：Firestore SDK（即時監聽）
+  - 網頁版：Firebase REST API（輪詢模擬）
+- **認證方式**：本地用戶 + 計畫密碼保護
+
+### 地圖服務
+- **Android/iOS**：react-native-maps (Google Maps SDK)
+- **網頁版**：@react-google-maps/api (Google Maps JavaScript API)
+- **平台自動選擇**：Platform.OS 條件載入
+
+### 部署與託管
+- **網頁版**：Vercel（自動部署）
+- **Android APK**：EAS Build
+- **CI/CD**：Git push 觸發 Vercel 自動部署
+
+### 跨平台架構
+- 平台適配層：services/tripService.ts, services/firestore.ts
+- 網頁版服務：webFirebase.ts, webTripService.ts, webPlaceService.ts
+- 網頁版組件：WebMapView.tsx
+- 跨平台工具：utils/alert.ts
+
+## 📚 詳細文檔
+
+- **[網頁版部署指南](WEB_DEPLOYMENT_GUIDE.md)** - 完整的 Vercel 部署教學
+- **[Google Maps API 設定](GOOGLE_MAPS_API_SETUP.md)** - Maps JavaScript API 設定步驟
+- **[網頁版移植進度](WEB_MIGRATION_PROGRESS.md)** - 網頁版開發完整記錄
+- **[部署資訊總覽](DEPLOYMENT_INFO.md)** - 所有部署相關資訊
+- **[Firestore 規則部署](DEPLOY_FIRESTORE_RULES.md)** - 資料庫安全規則設定
 
 ## 🤝 協作開發
 
@@ -326,6 +456,24 @@ eas submit --platform android
 4. 推送到分支：`git push origin feature/amazing-feature`
 5. 提交Pull Request
 
+## 📄 版本歷史
+
+- **v1.3.0** (2024-12) - 網頁版完整部署
+  - ✅ 新增網頁版支援（Vercel）
+  - ✅ 修復 4 個關鍵 Bug
+  - ✅ 完整的跨平台架構
+
+- **v1.2.0** (2024-12) - 密碼認證系統
+  - ✅ 計畫密碼保護
+  - ✅ 自定義計畫 ID
+
+- **v1.1.0** (2024-12) - 功能完善
+  - ✅ 多人協作即時同步
+  - ✅ 地圖路線規劃
+
+- **v1.0.0** (2024-12) - 初始版本
+  - ✅ 基本功能實現
+
 ## 📄 授權
 
 此專案為個人使用專案，僅供學習和家庭使用。
@@ -335,5 +483,7 @@ eas submit --platform android
 如有問題或建議，歡迎聯繫開發者。
 
 ---
+
+**🌐 立即體驗：** https://japan-trip-app-nine.vercel.app
 
 **祝您旅途愉快！🎌**
