@@ -95,12 +95,11 @@ japan-trip-app/
 │   ├── modals/                   # 彈窗組件
 │   │   ├── CreateTripModal.tsx   # 創建計畫
 │   │   ├── JoinTripModal.tsx     # 加入計畫
-│   │   ├── TripDetailsModal.tsx  # 計畫詳情
-│   │   └── AddPlaceModal.tsx     # 新增景點
+│   │   └── TripDetailsModal.tsx  # 計畫詳情
 │   ├── MapView.tsx               # 原生地圖組件
 │   ├── WebMapView.tsx            # 網頁版地圖組件
 │   ├── PlaceCard.tsx             # 景點卡片
-│   ├── RouteView.tsx             # 路線視圖
+│   ├── WeatherWidget.tsx         # 天氣組件
 │   └── TripMembers.tsx           # 成員列表
 │
 ├── services/                     # 業務邏輯層
