@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ScrollView,
   TextInput,
   Modal,
@@ -12,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useUser } from '../../context/UserContext';
 import { AVAILABLE_COLORS } from '../../services/localUser';
+import { Alert } from '../../utils/alert';
 
 export default function ProfileScreen() {
   const { user, updateUser, logout } = useUser();
